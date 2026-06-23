@@ -7,6 +7,8 @@ from HTTP headers into the tool execution context.
 
 import asyncio
 import contextvars
+import os
+import hmac
 from typing import Optional
 from .utils import logger
 import json
@@ -251,6 +253,71 @@ class AuthInjectionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         logger.debug(f"HTTP Auth Middleware: Processing request to {request.url.path}")
         logger.debug(f"HTTP Auth Middleware: Request headers: {list(request.headers.keys())}")
+
+        # --- Health check endpoint --------------------------------------------
+        # Load balancers (ECS Express Mode / ALB) GET a health path and expect
+        # 200. This endpoint is intentionally unauthenticated and returns no
+        # data — it only confirms the process is alive. Point the ECS/ALB
+        # health-check path at /healthz.
+        if request.url.path in ("/healthz", "/health") and request.method == "GET":
+            return Response(
+                content=json.dumps({"status": "ok"}),
+                status_code=200,
+                media_type="application/json",
+            )
+
+        # --- Gateway-token mode (Vysta) ---------------------------------------
+        # When MCP_GATEWAY_TOKEN is set, EVERY request must present that shared
+        # secret via ?token=<secret>, "Authorization: Bearer <secret>", or the
+        # X-MCP-TOKEN header. The Meta access token is NOT sent by the client —
+        # it lives server-side in META_ACCESS_TOKEN. Clients connect with just
+        #     https://<host>/mcp?token=<secret>
+        # while the Meta token stays secret on the server. Requests without a
+        # valid gateway token are rejected (401) before any tool runs, so this
+        # preserves the GHSA-9gw6-46qc-99vr fix (no unauthenticated fall-through).
+        gateway_secret = os.environ.get("MCP_GATEWAY_TOKEN", "")
+        if gateway_secret:
+            provided = request.query_params.get("token")
+            if not provided:
+                ah = request.headers.get("Authorization") or request.headers.get("authorization") or ""
+                if ah.lower().startswith("bearer "):
+                    provided = ah[7:].strip()
+            if not provided:
+                provided = request.headers.get("X-MCP-TOKEN") or request.headers.get("x-mcp-token")
+
+            if not provided or not hmac.compare_digest(str(provided), gateway_secret):
+                logger.warning(
+                    "HTTP Auth Middleware: rejecting request to %s — missing/invalid gateway token",
+                    request.url.path,
+                )
+                return Response(
+                    content=json.dumps({
+                        "error": "Unauthorized",
+                        "message": "Valid access token required. Append ?token=<token> to the MCP URL.",
+                    }),
+                    status_code=401,
+                    media_type="application/json",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+            meta_token = os.environ.get("META_ACCESS_TOKEN", "")
+            if not meta_token:
+                logger.error("HTTP Auth Middleware: MCP_GATEWAY_TOKEN is set but META_ACCESS_TOKEN is missing")
+                return Response(
+                    content=json.dumps({
+                        "error": "Server misconfigured",
+                        "message": "META_ACCESS_TOKEN is not configured on the server.",
+                    }),
+                    status_code=500,
+                    media_type="application/json",
+                )
+
+            FastMCPAuthIntegration.set_auth_token(meta_token)
+            try:
+                return await call_next(request)
+            finally:
+                FastMCPAuthIntegration.clear_auth_token()
+        # --- end gateway-token mode -------------------------------------------
 
         # Extract both types of tokens for dual-header authentication
         auth_token = FastMCPAuthIntegration.extract_token_from_headers(dict(request.headers))

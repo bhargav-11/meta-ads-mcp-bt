@@ -83,7 +83,7 @@ async def get_adset_details(adset_id: str, access_token: Optional[str] = None) -
     return json.dumps(data, indent=2)
 
 
-@mcp_server.tool()
+# @mcp_server.tool()  # [READ-ONLY] write tool unregistered — function code kept below
 @meta_api_tool
 async def create_adset(
     account_id: str, 
@@ -493,7 +493,7 @@ async def create_adset(
             }, indent=2)
 
 
-@mcp_server.tool()
+# @mcp_server.tool()  # [READ-ONLY] write tool unregistered — function code kept below
 @meta_api_tool
 async def update_adset(adset_id: str, frequency_control_specs: Optional[List[Dict[str, Any]]] = None, bid_strategy: Optional[str] = None,
                         bid_amount: Optional[int] = None, bid_constraints: Optional[Dict[str, Any]] = None,

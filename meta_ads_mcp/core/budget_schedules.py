@@ -8,7 +8,7 @@ from .server import mcp_server
 # Assuming no other specific dependencies from adsets.py are needed for this single function.
 # If other utilities from adsets.py (like get_ad_accounts) were needed, they'd be imported here.
 
-@mcp_server.tool()
+# @mcp_server.tool()  # [READ-ONLY] write tool unregistered — function code kept below
 @meta_api_tool
 async def create_budget_schedule(
     campaign_id: str,

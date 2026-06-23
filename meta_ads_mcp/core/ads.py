@@ -561,7 +561,7 @@ async def get_creative_details(creative_id: str, access_token: Optional[str] = N
     return json.dumps(data, indent=2)
 
 
-@mcp_server.tool()
+# @mcp_server.tool()  # [READ-ONLY] write tool unregistered — function code kept below
 @meta_api_tool
 async def create_ad(
     account_id: str,
@@ -1224,7 +1224,7 @@ if ENABLE_SAVE_AD_IMAGE_LOCALLY:
             return json.dumps({"error": f"Failed to save image: {str(e)}"}, indent=2)
 
 
-@mcp_server.tool()
+# @mcp_server.tool()  # [READ-ONLY] write tool unregistered — function code kept below
 @meta_api_tool
 async def update_ad(
     ad_id: str,
@@ -1313,7 +1313,7 @@ async def update_ad(
         return json.dumps({"error": f"Failed to update ad: {str(e)}"}, indent=2)
 
 
-@mcp_server.tool()
+# @mcp_server.tool()  # [READ-ONLY] write tool unregistered — function code kept below
 @meta_api_tool
 async def upload_ad_image(
     account_id: str,
@@ -1707,7 +1707,7 @@ async def _fetch_video_thumbnail(vid_id: str, access_token: str) -> Optional[str
     return url
 
 
-@mcp_server.tool()
+# @mcp_server.tool()  # [READ-ONLY] write tool unregistered — function code kept below
 @meta_api_tool
 async def create_ad_creative(
     account_id: str,
@@ -2909,7 +2909,7 @@ async def create_ad_creative(
         }, indent=2)
 
 
-@mcp_server.tool()
+# @mcp_server.tool()  # [READ-ONLY] write tool unregistered — function code kept below
 @meta_api_tool
 async def update_ad_creative(
     creative_id: str,
