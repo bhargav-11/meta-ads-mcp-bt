@@ -17,8 +17,10 @@ import time
 mcp_server = FastMCP("meta-ads")
 
 # Register resource URIs
-mcp_server.resource(uri="meta-ads://resources")(list_resources)
-mcp_server.resource(uri="meta-ads://images/{resource_id}")(get_resource)
+# [READ-ONLY] resources unregistered — keeps "List resources" off the connector.
+# Function code in resources.py is kept; uncomment to re-enable.
+# mcp_server.resource(uri="meta-ads://resources")(list_resources)
+# mcp_server.resource(uri="meta-ads://images/{resource_id}")(get_resource)
 
 
 class StreamableHTTPHandler:
